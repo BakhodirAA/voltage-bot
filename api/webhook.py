@@ -4,7 +4,7 @@ import asyncio
 from http.server import BaseHTTPRequestHandler
 import urllib.request
 
-TOKEN = "8759265616:AAHOPrxbFTpsvYOuPsyw-INbmQDv6GnaUmo"
+TOKEN = os.environ.get("TOKEN")
 
 def send_message(chat_id, text):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
