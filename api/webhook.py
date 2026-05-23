@@ -5,7 +5,7 @@ from http.server import BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = os.environ.get("TOKEN")
+TOKEN = os.environ.get("8759265616:AAHOPrxbFTpsvYOuPsyw-INbmQDv6GnaUmo")
 
 # ── Обработчики (твой оригинальный код) ──────────────────────────
 
