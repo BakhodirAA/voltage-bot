@@ -2,68 +2,36 @@ import os
 import json
 import asyncio
 from http.server import BaseHTTPRequestHandler
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import urllib.request
 
-TOKEN = os.environ.get("8759265616:AAHOPrxbFTpsvYOuPsyw-INbmQDv6GnaUmo")
+TOKEN = "8759265616:AAHOPrxbFTpsvYOuPsyw-INbmQDv6GnaUmo"
 
-# ── Обработчики (твой оригинальный код) ──────────────────────────
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "Калькулятор потери напряжения ⚡\n\n"
-        "Формула:\n"
-        "U = 30 * I * L / S\n\n"
-        "Отправь данные через пробел:\n"
-        "I L S\n\n"
-        "Пример:\n"
-        "50 0.8 16"
-    )
-    await update.message.reply_text(text)
-
-async def calc(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        I, L, S = map(float, update.message.text.split())
-        U = 30 * I * L / S
-        result = (
-            f"Результат:\n"
-            f"I = {I} A\n"
-            f"L = {L} км\n"
-            f"S = {S} мм²\n\n"
-            f"Потеря напряжения U = {U:.2f} В"
-        )
-        await update.message.reply_text(result)
-    except:
-        await update.message.reply_text(
-            "Ошибка ⚠️\n"
-            "Введи 3 числа через пробел:\n"
-            "I L S\n\n"
-            "Пример:\n"
-            "50 0.8 16"
-        )
-
-# ── Обработка входящего update от Telegram ───────────────────────
-
-async def process_update(data: dict):
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, calc))
-    async with app:
-        update = Update.de_json(data, app.bot)
-        await app.process_update(update)
-
-# ── Vercel serverless handler ─────────────────────────────────────
+def send_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text}).encode()
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    urllib.request.urlopen(req)
 
 class handler(BaseHTTPRequestHandler):
-
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(length)
-        try:
-            data = json.loads(body)
-            asyncio.run(process_update(data))
-        except Exception as e:
-            print("Ошибка:", e)
+        body = json.loads(self.rfile.read(length))
+        
+        message = body.get("message", {})
+        chat_id = message.get("chat", {}).get("id")
+        text = message.get("text", "")
+        
+        if chat_id:
+            if text == "/start":
+                send_message(chat_id, "Калькулятор потери напряжения ⚡\n\nФормула:\nU = 30 * I * L / S\n\nОтправь данные через пробел:\nI L S\n\nПример:\n50 0.8 16")
+            else:
+                try:
+                    I, L, S = map(float, text.split())
+                    U = 30 * I * L / S
+                    send_message(chat_id, f"Результат:\nI = {I} A\nL = {L} км\nS = {S} мм²\n\nПотеря напряжения U = {U:.2f} В")
+                except:
+                    send_message(chat_id, "Ошибка ⚠️\nВведи 3 числа через пробел:\nI L S\n\nПример:\n50 0.8 16")
+        
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"ok")
